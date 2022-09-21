@@ -356,6 +356,95 @@ class Delay : public AudioEffect  {
             if (newSampleCount!=sampleCount){
                 if (p_history!=nullptr) delete p_history;
                 sampleCount = newSampleCount;
+                if(delayLine->getDuration()  != 0){
+                  p_history = new RingBuffer<effect_t>(sampleCount);
+                } else {
+                   p_history = new RingBuffer<effect_t>(44);
+                }
+            }
+        }
+};
+
+/**
+ * @brief Sample Delay AudioEffect. Returns a delayed audio sample at a given volume
+ * @author Andy Sheen
+ * @copyright GPLv3
+ */
+class SampleDelay : public AudioEffect  {
+    public:
+        /// e.g. depthPercent=50, ms=1000, sampleRate=44100
+        SampleDelay(uint16_t duration_ms=1000, float volumeAmount=1.0, uint32_t sampleRate=44100) {
+          sampleDelayLine = new SampleDelayLine(duration_ms,volumeAmount,sampleRate);
+        }
+
+        SampleDelay(const SampleDelay &ref) {
+            sampleDelayLine = new SampleDelayLine(*(ref.sampleDelayLine));
+            copyParent((AudioEffect *)&ref);
+        };
+
+        virtual ~SampleDelay(){
+            delete sampleDelayLine;
+        }
+
+        void setDuration(int16_t m){
+          sampleDelayLine->setDuration(m);
+          if(m <= 0){
+            setActive(false);
+          } else {
+            setActive(true);
+          }
+        }
+
+        int16_t getDuration(){
+            return sampleDelayLine->getDuration();
+        }
+
+        void setVolume(float v){
+            sampleDelayLine->setVolume(v);
+        }
+
+        float getVolume() {
+            return sampleDelayLine->getVolume();
+        }
+
+        void setSampleRate(int32_t s){
+            sampleDelayLine->setSampleRate(s);
+        }
+
+        float getSampleRate() {
+            return sampleDelayLine->getSampleRate();
+        }
+
+        effect_t process(effect_t input) {
+            if (!active()) return input;
+
+            sampleDelayLine->tick();
+            updateBufferSize();
+            // get value from buffer
+            int32_t value = (p_history->available()<sampleCount) ? input : p_history->read();
+
+            p_history->write(input);
+            if(sampleDelayLine->getDuration() <= 0){
+              value = input;
+            }
+            // mix input with result
+            return (value*sampleDelayLine->getVolume());
+        }
+
+        SampleDelay *clone() {
+            return new SampleDelay(*this);
+        }
+
+    protected:
+        RingBuffer<effect_t>* p_history=nullptr;
+        SampleDelayLine *sampleDelayLine;
+        uint16_t sampleCount=0;
+
+        void updateBufferSize(){
+            uint16_t newSampleCount = sampleDelayLine->getSampleRate() * sampleDelayLine->getDuration() / 1000;
+            if (newSampleCount!=sampleCount){
+                if (p_history!=nullptr) delete p_history;
+                sampleCount = newSampleCount;
                 p_history = new RingBuffer<effect_t>(sampleCount);
             }
         }

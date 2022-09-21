@@ -215,8 +215,57 @@ class DelayLine : public  AbstractParameter  {
             return sampleRate;
         }
 
+
+
     protected:
         float depth,feedback,duration,sampleRate;
+
+        inline float update( ) {
+          return 0;
+        }
+};
+
+/**
+ * @brief Generates a Sample Delay
+ *
+ */
+class SampleDelayLine : public  AbstractParameter  {
+    public:
+
+      SampleDelayLine(uint16_t duration_ms=1000, float volumeAmount=1.0, uint32_t sampleRate=44100) {
+            this->sampleRate = sampleRate;
+            this->duration = duration_ms;
+            this->volumeAmount = volumeAmount;
+        }
+
+        SampleDelayLine(SampleDelayLine &copy) = default;
+
+        void setDuration(int16_t dur){
+            duration = dur;
+        }
+
+        int16_t getDuration(){
+            return duration;
+        }
+
+        void setVolume(float vol){
+            volumeAmount = vol;
+        }
+
+        float getVolume() {
+            return volumeAmount;
+        }
+
+        void setSampleRate(int32_t sample){
+            sampleRate = sample;
+        }
+
+        float getSampleRate() {
+            return sampleRate;
+        }
+
+    protected:
+        float volumeAmount,duration,sampleRate;
 
         inline float update( ) {
           return 0;
